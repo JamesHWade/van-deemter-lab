@@ -18,6 +18,10 @@ Open the local address printed by Shiny. For Posit Connect, deploy this director
 
 ## Included
 
+- Always-visible primary sliders beside the chromatogram, stacking above it on narrow screens.
+- Investigation presets for flow, length and selectivity, with prediction prompts.
+- Automatic reference trace, percentage-change readouts and live substituted equations.
+- Crimson, charcoal and warm-white visual theme with serif headings.
 - Linked van Deemter, chromatogram, resolution and retention-time plots.
 - Adjustable A, B, C, linear velocity, column length, retention and selectivity.
 - Optimum-velocity button; saved comparison; CSV export of settings, metrics and peaks.
