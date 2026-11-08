@@ -6,79 +6,110 @@ from matplotlib.figure import Figure
 from shiny import App, reactive, render, ui
 from model import Conditions, calculate, chromatogram
 
-CSS = '''
-body{background:#f5f3ed;color:#202124;font-family:system-ui,sans-serif}
-.container-fluid{max-width:1500px;margin:auto;padding:28px}
-h1{font-size:clamp(30px,4vw,52px);font-weight:700;letter-spacing:-2px;margin:8px 0 14px}
-h1,h2,h3{font-family:Georgia,serif} h2,h3{font-weight:650} .eyebrow{font-size:12px;letter-spacing:2px;color:#b5122a;font-weight:750}
-.lead{max-width:800px;color:#51616a;font-size:18px}.card{border:1px solid #dfE3df;border-radius:14px;box-shadow:none}
-.card-header{background:white;font-weight:650;padding:16px 20px}.sidebar{background:#fff}
-.btn-primary{background:#b5122a;border-color:#b5122a}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0}
-.metric{background:#202124;color:white;border-radius:12px;padding:18px}.metric strong{display:block;font-size:29px}.metric span{font-size:12px;color:#eee4df}
-.note{padding:16px;background:#faf0ee;border-left:3px solid #b5122a;border-radius:4px;margin:12px 0}
-.equation{font:600 21px Georgia,serif;padding:16px;background:#f5f3ed;border-radius:8px;margin:12px 0}
-.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.control{padding:16px;border:1px solid #e8e0dc;border-radius:8px;background:#fff}.control p{font-size:13px;color:#626262;margin:6px 0}.irs--shiny .irs-bar,.irs--shiny .irs-single{background:#b5122a;border-color:#b5122a}.workbench{display:grid;grid-template-columns:minmax(300px,4fr) minmax(0,6fr);gap:20px;align-items:start}.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.nav-link{color:#a10e25}.metric small{display:block;color:#eee4df;margin-top:6px}.lesson{padding:24px;max-width:950px}.lesson p,.lesson li{line-height:1.7}.small{color:#596c76;font-size:13px}
-@media(max-width:900px){.workbench{grid-template-columns:1fr}} @media(max-width:700px){.controls{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,1fr)}.container-fluid{padding:14px}.metric strong{font-size:23px}}
-'''
-
-def number(id, label, value, low, high, step):
-    return ui.input_numeric(id, label, value, min=low, max=high, step=step)
+CSS = """
+:root{--ink:#242326;--muted:#686369;--paper:#f7f5f0;--line:#e4dfd9;--red:#b5122a;--bs-primary:#b5122a}
+body{background:var(--paper);color:var(--ink);font-family:system-ui,-apple-system,sans-serif;line-height:1.55}
+.container-fluid{max-width:1440px;margin:auto;padding:32px clamp(16px,3vw,40px) 56px}
+h1,h2,h3{font-family:Georgia,serif}h1{font-size:clamp(32px,3.5vw,48px);font-weight:500;letter-spacing:-1.4px;line-height:1.12;margin:12px 0}
+h2{font-size:28px}h3{font-size:23px}h4{font-size:17px;font-weight:650;margin-top:24px}
+.eyebrow{font-size:11px;letter-spacing:1.8px;color:var(--red);font-weight:750}
+.lead{max-width:760px;color:var(--muted);font-size:16px;line-height:1.65;margin-bottom:24px}
+.card{border:1px solid var(--line);border-radius:12px;box-shadow:0 2px 8px #24232604;min-width:0;background:#fff;margin-bottom:0}
+.card-header{background:#fff;border-bottom:1px solid var(--line);font-size:15px;font-weight:650;padding:16px 20px}
+.card-body{padding:18px 20px;gap:14px}.card-body>p:last-child{margin-bottom:0}
+.nav-tabs{border-bottom:1px solid var(--line);gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.nav-tabs .nav-link{color:var(--muted);border:0;border-bottom:3px solid transparent;padding:12px 14px;font-weight:550;font-size:14px;background:transparent}
+.nav-tabs .nav-link.active{color:var(--red);background:transparent;border-color:var(--red)}
+.nav-tabs .nav-link:hover{color:var(--red);background:#b5122a05}
+.btn{font-size:13px;font-weight:600;border-radius:7px;padding:9px 13px;min-height:40px;white-space:normal;box-shadow:none}
+.btn-default{border:1px solid var(--line);background:white;color:var(--ink)}
+.btn-primary{background:var(--red);border-color:var(--red);--bs-btn-hover-bg:#910e22;--bs-btn-hover-border-color:#910e22;--bs-btn-active-bg:#910e22}
+.btn:hover{filter:brightness(.96)}
+.btn:focus-visible,.nav-link:focus-visible,.form-select:focus-visible{outline:3px solid #b5122a70;outline-offset:3px;box-shadow:none}
+.form-check-input:checked{background-color:var(--red);border-color:var(--red)}
+.form-control:focus,.form-select:focus{border-color:var(--red);box-shadow:0 0 0 3px #b5122a18}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:6px 0}
+.investigation-bar{align-items:end;margin:0 0 14px}.investigation-bar .shiny-input-container{width:min(100%,450px)!important;margin:0}
+.investigation-bar .btn{margin-bottom:0}.control-label{font-size:13px;font-weight:600;line-height:1.45;margin-bottom:8px}
+.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 20px}
+.control{min-width:0}.control .shiny-input-container{width:100%!important;margin:0}
+.control p{font-size:12px;line-height:1.55;color:var(--muted);margin:8px 0 0}
+.irs--shiny .irs-bar,.irs--shiny .irs-single{background:var(--red);border-color:var(--red)}
+.irs--shiny .irs-handle{border-color:var(--red)}.irs--shiny .irs-grid-text{color:var(--muted)}
+.workbench{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:20px;align-items:stretch}
+.workbench>.card{height:100%}.section-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin:20px 0;align-items:start}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}
+.metric{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;min-width:0;font-variant-numeric:tabular-nums}
+.metric strong{display:block;font-size:clamp(22px,2.5vw,29px);font-weight:600;letter-spacing:-.6px;line-height:1.35;margin:6px 0}
+.metric span{font-size:12px;color:var(--muted)}.metric small{display:block;font-size:12px;color:var(--muted)}
+.note{padding:15px 18px;background:#f5eae7;border-left:3px solid var(--red);border-radius:0 8px 8px 0;margin:14px 0 20px;font-size:14px}
+.note p{margin:5px 0 0;line-height:1.6}.note strong{font-weight:650}
+.equation{font:500 clamp(17px,1.6vw,21px)/1.6 Georgia,serif;padding:14px 16px;background:var(--paper);border-radius:7px;margin:0 0 12px;overflow-wrap:anywhere}
+.small{color:var(--muted);font-size:12px;line-height:1.6}.lesson{padding:20px 4px;max-width:850px}.lesson p,.lesson li{line-height:1.8}.lesson h2{margin:24px 0 16px}
+.accordion{--bs-accordion-active-bg:#faf5f2;--bs-accordion-active-color:var(--red);--bs-accordion-btn-focus-box-shadow:0 0 0 3px #b5122a18;--bs-accordion-border-color:var(--line)}
+.accordion-button{font-size:14px;line-height:1.5}.table{font-size:13px;font-variant-numeric:tabular-nums;margin:0}.table td,.table th{padding:11px 12px;border-color:var(--line)}
+.table td:not(:first-child),.table th:not(:first-child){text-align:right}.footer-actions{margin-top:20px}
+@media(max-width:1000px){.workbench{grid-template-columns:1fr}.workbench>.card{height:auto}}
+@media(max-width:700px){.container-fluid{padding:22px 16px 40px}.section-grid{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.card-body{padding:16px}.card-header{padding:14px 16px}.nav-tabs{gap:0}.nav-tabs .nav-link{padding:10px;font-size:13px}.metric{padding:14px}.eyebrow{letter-spacing:1px}}
+@media(max-width:420px){.controls{grid-template-columns:1fr;gap:18px}.investigation-bar .btn{width:100%}.metric strong{font-size:23px}}
+"""
 
 app_ui = ui.page_fluid(
     ui.tags.style(CSS),
-    ui.div('CHROMATOGRAPHY / AN INTERACTIVE TEACHING LAB', class_='eyebrow'),
+    ui.div('ANALYTICAL CHEMISTRY · SEPARATION LAB', class_='eyebrow'),
     ui.h1('How fast should a column run?'),
     ui.p('Explore the van Deemter equation. Watch band broadening change a separation, then find the trade-off between resolution and analysis time.', class_='lead'),
     ui.navset_tab(
-        ui.nav_panel('Explore the separation',
+        ui.nav_panel('Experiment',
             ui.div(
                 ui.div(
                     ui.input_select('experiment','Choose an investigation',
                         {'flow':'1 · Why not run as fast as possible?',
                          'length':'2 · Is a longer column always better?',
                          'selectivity':'3 · Can efficiency separate identical retention?',
-                         'free':'4 · Design your own separation'}),
-                    ui.input_action_button('load','Start investigation',class_='btn-primary'),
-                    class_='toolbar'),
+                         'free':'4 · Design your own separation'},selected='free'),
+                    ui.input_action_button('load','Load starting conditions',class_='btn-primary'),
+                    class_='toolbar investigation-bar'),
                 ui.output_ui('prompt'),
                 ui.div(
-                    ui.card(ui.card_header('CHANGE ONE VARIABLE · Drag a slider'),
+                    ui.card(ui.card_header('Experimental controls'),
                         ui.div(
-                            ui.div(ui.input_slider('u','Mobile-phase velocity · u (mm/s)',.1,5,1,step=.05),
-                                ui.p('Slow ← → Fast. Predict: will faster flow sharpen or broaden the bands?'),class_='control'),
-                            ui.div(ui.input_slider('L','Column length · L (mm)',50,300,150,step=10),
-                                ui.p('Short ← → Long. More column gives more plates, but takes more time.'),class_='control'),
-                            ui.div(ui.input_slider('alpha','Selectivity · α = k₂/k₁',1,1.3,1.12,step=.005),
-                                ui.p('Similar ← → Different retention. In the lab, stationary phase or solvent composition can change selectivity.'),class_='control'),
-                            ui.div(ui.input_slider('k','Retention factor · k₁',.5,10,3,step=.1),
-                                ui.p('Weak ← → Strong retention. In the lab, mobile-phase strength is one way to change retention.'),class_='control'),class_='controls'),
-                        ui.div(ui.input_action_button('optimal','Set best-efficiency flow'),
-                               ui.input_action_button('save','Use current as reference'),
+                            ui.div(ui.input_slider('u','Velocity, u · mm/s',.1,5,1,step=.05),
+                                ui.p('Change flow speed. Watch the balance between diffusion and mass transfer.'),class_='control'),
+                            ui.div(ui.input_slider('L','Column length, L · mm',50,300,150,step=10),
+                                ui.p('A longer column gives more plates and a longer analysis time.'),class_='control'),
+                            ui.div(ui.input_slider('alpha','Selectivity, α = k₂/k₁',1,1.3,1.12,step=.005),
+                                ui.p('Change how differently the solutes are retained. α = 1 means identical retention.'),class_='control'),
+                            ui.div(ui.input_slider('k','Retention factor, k₁',.5,10,3,step=.1),
+                                ui.p('Change retention relative to the unretained time. Larger k means later elution.'),class_='control'),class_='controls'),
+                        ui.div(ui.input_action_button('optimal','Optimize flow'),
+                               ui.input_action_button('save','Save reference'),
                                ui.input_action_button('reset','Reset all'),class_='toolbar'),
                         ui.p('Selectivity and retention are independent model controls. Real solvent changes may affect both, as well as band broadening.',class_='small')),
-                    ui.card(ui.card_header('OBSERVE · Do the peaks overlap?'),
-                        ui.input_switch('normalized','Compare overlap on normalized time (t/t₀)',True),
+                    ui.card(ui.card_header('Chromatogram'),
+                        ui.input_switch('normalized','Normalized time, t/t₀',True),
                         ui.output_plot('peaks',height='340px'),
-                        ui.p('Solid curves: current experiment. Dashed curve: reference. Each solute has the same total peak area. Switch to minutes to see the analysis time.',class_='small')),
+                        ui.p('Dashed line: reference. Turn off normalized time to view minutes. Both solutes have equal peak area.',class_='small')),
                     class_='workbench'),
                 ui.output_ui('metrics'),ui.output_ui('interpretation'),
-                ui.layout_columns(
-                    ui.card(ui.card_header('EXPLAIN · Why does the band spread?'),ui.output_plot('deemter',height='330px')),
-                    ui.card(ui.card_header('CONNECT · From broadening to separation'),
+                ui.div(
+                    ui.card(ui.card_header('Band broadening'),ui.output_plot('deemter',height='330px')),
+                    ui.card(ui.card_header('Follow the calculation'),
                         ui.output_ui('worked'),
                         ui.p('Smaller H → more plates N → less relative peak width → greater resolution, if retention and selectivity stay fixed.'),
-                        ui.accordion(ui.accordion_panel('Explore the three broadening mechanisms',
+                        ui.accordion(ui.accordion_panel('Adjust A, B and C',
                             ui.input_slider('A','Multiple paths · A (µm)',0,30,8,step=1),
                             ui.p('Different routes through the packing. Changes H without shifting the optimum.'),
                             ui.input_slider('B','Longitudinal diffusion · B (µm·mm/s)',.5,20,6,step=.5),
                             ui.p('More time at slow flow allows more diffusion along the column.'),
                             ui.input_slider('C','Mass-transfer resistance · C (µm·s/mm)',1,20,6,step=.5),
                             ui.p('At fast flow, solutes have less time to equilibrate. These are model coefficients, not instrument settings.')),open=False)),
-                    col_widths=(6,6)),
-                ui.card(ui.card_header('TRADE-OFF · Separation quality and time'),ui.output_plot('tradeoff',height='260px')),
-                ui.output_ui('comparison'),ui.download_button('download','Download experiment data')
+                    class_='section-grid'),
+                ui.div(ui.card(ui.card_header('Resolution versus flow'),ui.output_plot('resolution_curve',height='280px')),
+                       ui.card(ui.card_header('Analysis time versus flow'),ui.output_plot('time_curve',height='280px')),class_='section-grid'),
+                ui.output_ui('comparison'),ui.div(ui.download_button('download','Download experiment data'),class_='footer-actions')
             )),
-        ui.nav_panel('Understand the model',ui.div(
+        ui.nav_panel('The theory',ui.div(
             ui.h2('Three mechanisms. One efficiency curve.'),
             ui.div('H = A + B/u + Cu',class_='equation'),
             ui.p('H is the height equivalent to a theoretical plate. Smaller H means less band spreading per unit column length. A theoretical plate is a model of efficiency, not a physical disc inside the column.'),
@@ -99,7 +130,7 @@ app_ui = ui.page_fluid(
             ui.h4('Further reading'),
             ui.tags.a('Agilent · The LC Handbook',href='https://www.agilent.com/cs/library/primers/public/LC-Handbook-Complete-2.pdf',target='_blank'),
             class_='lesson')),
-        ui.nav_panel('Guided experiments',ui.div(
+        ui.nav_panel('Lab activities',ui.div(
             ui.h2('Predict. Change one variable. Explain.'),
             ui.p('Use Reset experiment before each activity. Save a comparison before changing a control.'),
             ui.h4('1 / Find the best flow'),ui.p('Compare u = 0.2, 1.0 and 4.0 mm/s. Which term dominates each extreme? Find the minimum H, then compare the resolution and retention time. Is the fastest run the best resolved?'),
@@ -140,6 +171,7 @@ def server(input, output, session):
         for key,value in asdict(Conditions()).items():
             ui.update_slider(key,value=value)
         reference.set(Conditions())
+        ui.update_select('experiment',selected='free')
 
     @reactive.effect
     @reactive.event(input.load)
@@ -158,7 +190,7 @@ def server(input, output, session):
             'selectivity':('Try to separate the inseparable','Start with α = 1. Try changing velocity and length first. Then change α. Explain why reducing peak width cannot separate peaks with identical retention times.'),
             'free':('Choose a defensible compromise','Aim for Rs ≥ 1.5 with a short analysis time. Save a reference, change one parameter, and explain both the benefit and cost. Pressure limits are not modeled.')}
         title,body=prompts[input.experiment()]
-        return ui.div(ui.tags.strong(title),ui.p(body),class_='note')
+        return ui.div(ui.tags.strong(title),ui.p(body),ui.p('Load starting conditions to apply this investigation; selecting it alone keeps your experiment unchanged.',class_='small'),class_='note')
 
     @render.ui
     def worked():
@@ -171,7 +203,7 @@ def server(input, output, session):
     @render.ui
     def metrics():
         m=calculate(settings());r=calculate(reference())
-        pairs=[('Plate height H','H','µm',1),('Theoretical plates N','N','',1),('Resolution Rs','Rs','',1),('Later peak tR,2','t2','min',60)]
+        pairs=[('Plate height H','H','µm',1),('Theoretical plates N','N','',1),('Resolution Rs','Rs','',1),('Retention time, tR,₂','t2','min',60)]
         cards=[]
         for label,key,unit,scale in pairs:
             val=m[key]/scale
@@ -191,7 +223,7 @@ def server(input, output, session):
         return ui.div(ui.tags.strong(regime),ui.p(f"{state} Largest broadening contribution: {max(terms,key=terms.get)}. Optimum velocity: {m['uopt']:.2f} mm/s. Teaching approximation: Rs ≈ {m['Rs_approx']:.2f}."),class_='note')
 
     def axes():
-        fig=Figure(figsize=(7,3.3),layout='constrained',facecolor='white');ax=fig.subplots()
+        fig=Figure(figsize=(6,3.5),layout='constrained',facecolor='white');ax=fig.subplots()
         for side in ['top','right']: ax.spines[side].set_visible(False)
         ax.spines['left'].set_color('#d3dcdf');ax.spines['bottom'].set_color('#d3dcdf')
         ax.tick_params(colors='#51616a',labelsize=9);ax.grid(axis='y',alpha=.14)
@@ -206,7 +238,7 @@ def server(input, output, session):
         old=reference();ax.scatter([old.u],[calculate(old)['H']],marker='x',color='#8b8581',s=60,label='Reference',zorder=4)
         ax.scatter([p.u],[m['H']],color='#202124',s=65,zorder=5,label='Current')
         ax.set(xlabel='Linear velocity u (mm/s)',ylabel='Plate height H (µm)',xlim=(.1,5),ylim=(0,None))
-        ax.legend(ncol=3,fontsize=8,frameon=False);return fig
+        ax.legend(ncol=3,fontsize=8,frameon=False,loc='lower center',bbox_to_anchor=(.5,1.01));return fig
 
     @render.plot(alt='Two Gaussian chromatographic peaks and their summed detector signal; saved reference is dashed.')
     def peaks():
@@ -216,32 +248,40 @@ def server(input, output, session):
         ax.fill_between(x,y2,color='#c57a29',alpha=.18);ax.plot(x,y2,color='#c57a29',label='Solute 2')
         ax.plot(x,y1+y2,color='#202124',lw=1.5,label='Total signal')
         if reference() is not None:
-            xr,a,b=chromatogram(reference(),norm);ax.plot(xr,a+b,color='#8b8581',ls='--',label='Saved total')
+            xr,a,b=chromatogram(reference(),norm);ax.plot(xr,a+b,color='#8b8581',ls='--',label='Reference')
         ax.set(xlabel='Normalized time t/t₀' if norm else 'Time (min)',ylabel='Area-normalized signal',ylim=(0,None))
-        ax.legend(fontsize=8,frameon=False);return fig
+        ax.legend(ncol=2,fontsize=8,frameon=False,loc='lower center',bbox_to_anchor=(.5,1.01));return fig
 
-    @render.plot(alt='Resolution versus velocity with a 1.5 target and later-peak retention time on a second panel.')
-    def tradeoff():
-        p=settings();fig=Figure(figsize=(12,2.7),layout='constrained');axs=fig.subplots(1,2)
-        u=np.linspace(.1,5,400);ms=[calculate(Conditions(**{**asdict(p),'u':v})) for v in u]
-        for ax,key,label,color in zip(axs,['Rs','t2'],['Resolution Rs','Later-peak time (min)'],['#b5122a','#c57a29']):
-            scale=60 if key=='t2' else 1
-            ax.plot(u,[m[key]/scale for m in ms],color=color,lw=2)
-            ax.scatter([p.u],[calculate(p)[key]/scale],color='#202124',zorder=5)
-            ax.set(xlabel='Linear velocity u (mm/s)',ylabel=label,xlim=(.1,5));ax.grid(alpha=.15)
-            ax.spines[['top','right']].set_visible(False)
-        axs[0].axhline(1.5,color='#c57a29',ls='--',label='Rs = 1.5');axs[0].legend(frameon=False,fontsize=8)
+    def flow_curve(key):
+        p=settings();fig,ax=axes()
+        u=np.linspace(.1,5,400)
+        ms=[calculate(Conditions(**{**asdict(p),'u':v})) for v in u]
+        scale=60 if key=='t2' else 1
+        color='#b5122a' if key=='Rs' else '#8d602b'
+        ax.plot(u,[m[key]/scale for m in ms],color=color,lw=2)
+        ax.scatter([p.u],[calculate(p)[key]/scale],color='#202124',zorder=5)
+        ax.set(xlabel='Linear velocity u (mm/s)',ylabel='Resolution Rs' if key=='Rs' else 'Later-peak time (min)',xlim=(.1,5),ylim=(0,None))
+        if key=='Rs':
+            ax.axhline(1.5,color='#8d602b',ls='--',lw=1,label='Rs = 1.5 target')
+            ax.legend(frameon=False,fontsize=8,loc='lower center',bbox_to_anchor=(.5,1.01))
         return fig
+
+    @render.plot(alt='Resolution versus velocity, with current velocity marked and a dashed target at Rs = 1.5.')
+    def resolution_curve():return flow_curve('Rs')
+
+    @render.plot(alt='Later-peak retention time versus velocity, with the current experiment marked.')
+    def time_curve():return flow_curve('t2')
 
     @render.ui
     def comparison():
         old=reference()
         if old is None:return ui.p('Save a comparison to measure what changed.',class_='small')
         a,b=calculate(old),calculate(settings())
-        rows=[ui.tags.tr(ui.tags.th('Measurement'),ui.tags.th('Saved'),ui.tags.th('Current'))]
+        rows=[ui.tags.tr(ui.tags.th('Measurement'),ui.tags.th('Reference'),ui.tags.th('Current'))]
         for label,x,y in [('u (mm/s)',old.u,settings().u),('H (µm)',a['H'],b['H']),('N',a['N'],b['N']),('Rs',a['Rs'],b['Rs']),('tR,2 (min)',a['t2']/60,b['t2']/60)]:
-            rows.append(ui.tags.tr(ui.tags.td(label),ui.tags.td(f'{x:.3f}'),ui.tags.td(f'{y:.3f}')))
-        return ui.card(ui.card_header('Saved comparison'),ui.tags.table(*rows,class_='table'))
+            fmt=',.0f' if label=='N' else '.2f'
+            rows.append(ui.tags.tr(ui.tags.td(label),ui.tags.td(format(x,fmt)),ui.tags.td(format(y,fmt))))
+        return ui.card(ui.card_header('Reference comparison'),ui.tags.table(*rows,class_='table'))
 
     @render.download(filename='van-deemter-experiment.csv')
     def download():
